@@ -1,4 +1,5 @@
 // backend/models/User.js
+// backend/models/User.js
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
