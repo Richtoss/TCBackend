@@ -6,6 +6,7 @@ const { check, validationResult } = require('express-validator');
 //const User = require('../models/User');
 const path = require('path');
 const User = require(path.join(__dirname, '..', 'models', 'User'));
+const auth = require('../middleware/auth'); // Add this line to import the auth middleware
 
 // @route   POST api/auth/register
 // @desc    Register a user
