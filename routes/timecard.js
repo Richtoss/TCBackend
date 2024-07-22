@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Timecard = require('../models/Timecard');
-const User = require('../models/User');
+//const User = require('../models/User');
+const path = require('path');
+const User = require(path.join(__dirname, '..', 'models', 'User'));
 
 // Get all timecards for the logged-in user
 router.get('/', auth, async (req, res) => {
