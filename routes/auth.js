@@ -45,6 +45,7 @@ router.post('/register', [
     const payload = {
       user: {
         id: user.id,
+		name: user.name,
         isManager: user.isManager
       }
     };
