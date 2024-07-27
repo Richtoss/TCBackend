@@ -148,4 +148,27 @@ router.get('/check-current-week', auth, async (req, res) => {
   }
 });
 
+router.put('/:id/complete', auth, async (req, res) => {
+  try {
+    const timecard = await Timecard.findById(req.params.id);
+
+    if (!timecard) {
+      return res.status(404).json({ msg: 'Timecard not found' });
+    }
+
+    // Check if the user owns this timecard
+    if (timecard.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+
+    timecard.completed = true;
+    await timecard.save();
+
+    res.json(timecard);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;
