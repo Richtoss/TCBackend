@@ -123,4 +123,29 @@ router.get('/all', auth, async (req, res) => {
   }
 });
 
+router.get('/check-current-week', auth, async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)));
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const existingTimecard = await Timecard.findOne({
+      user: req.user.id,
+      weekStartDate: {
+        $gte: startOfWeek,
+        $lte: endOfWeek
+      }
+    });
+
+    res.json({ exists: !!existingTimecard });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 module.exports = router;
