@@ -69,7 +69,7 @@ router.put('/:id', auth, async (req, res) => {
     }
     
     // Update fields
-    if (entries) timecard.entries = entries;
+    if (entries !== undefined) timecard.entries = entries;
     if (totalHours !== undefined) timecard.totalHours = totalHours;
     if (completed !== undefined) timecard.completed = completed;
     
