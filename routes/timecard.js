@@ -43,9 +43,11 @@ router.post('/', auth, async (req, res) => {
 
 // Update a timecard
 router.put('/:id', auth, async (req, res) => {
+  console.log('Received update request for timecard:', req.params.id);
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
   try {
-    console.log('Updating timecard:', req.params.id);
-    console.log('Received data:', req.body);
+    //console.log('Updating timecard:', req.params.id);
+    //console.log('Received data:', req.body);
 
     const { entries, totalHours, completed } = req.body;
     let timecard = await Timecard.findById(req.params.id);
