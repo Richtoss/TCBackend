@@ -2,9 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Timecard = require('../models/Timecard');
-//const User = require('../models/User');
-const path = require('path');
-const User = require(path.join(__dirname, '..', 'models', 'User'));
+const User = require('../models/User');
 
 // Get all timecards for the logged-in user
 router.get('/', auth, async (req, res) => {
@@ -12,8 +10,8 @@ router.get('/', auth, async (req, res) => {
     const timecards = await Timecard.find({ user: req.user.id }).sort({ weekStartDate: -1 });
     res.json(timecards);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error fetching timecards:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
@@ -21,6 +19,11 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { weekStartDate, entries, totalHours } = req.body;
+
+    // Validate input
+    if (!weekStartDate || !Array.isArray(entries) || typeof totalHours !== 'number') {
+      return res.status(400).json({ msg: 'Invalid input data' });
+    }
 
     const newTimecard = new Timecard({
       user: req.user.id,
@@ -33,37 +36,48 @@ router.post('/', auth, async (req, res) => {
     const timecard = await newTimecard.save();
     res.json(timecard);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error creating timecard:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
 // Update a timecard
 router.put('/:id', auth, async (req, res) => {
   try {
+    console.log('Updating timecard:', req.params.id);
+    console.log('Received data:', req.body);
+
     const { entries, totalHours, completed } = req.body;
-
     let timecard = await Timecard.findById(req.params.id);
-
+    
     if (!timecard) {
       return res.status(404).json({ msg: 'Timecard not found' });
     }
-
-    // Check user
-    if (timecard.user.toString() !== req.user.id) {
+    
+    // Check user (allow managers to edit)
+    const user = await User.findById(req.user.id);
+    if (timecard.user.toString() !== req.user.id && !user.isManager) {
       return res.status(401).json({ msg: 'User not authorized' });
     }
-
-    timecard.entries = entries || timecard.entries;
-    timecard.totalHours = totalHours || timecard.totalHours;
-    timecard.completed = completed !== undefined ? completed : timecard.completed;
-
+    
+    // Data validation
+    if (entries && !Array.isArray(entries)) {
+      return res.status(400).json({ msg: 'Invalid entries format' });
+    }
+    if (totalHours !== undefined && typeof totalHours !== 'number') {
+      return res.status(400).json({ msg: 'Invalid totalHours format' });
+    }
+    
+    // Update fields
+    if (entries) timecard.entries = entries;
+    if (totalHours !== undefined) timecard.totalHours = totalHours;
+    if (completed !== undefined) timecard.completed = completed;
+    
     await timecard.save();
-
     res.json(timecard);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error updating timecard:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
@@ -76,8 +90,9 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Timecard not found' });
     }
 
-    // Make sure user owns the timecard
-    if (timecard.user.toString() !== req.user.id) {
+    // Check user (allow managers to delete)
+    const user = await User.findById(req.user.id);
+    if (timecard.user.toString() !== req.user.id && !user.isManager) {
       return res.status(401).json({ msg: 'User not authorized' });
     }
 
@@ -85,8 +100,8 @@ router.delete('/:id', auth, async (req, res) => {
 
     res.json({ msg: 'Timecard removed' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error deleting timecard:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
@@ -106,7 +121,7 @@ router.get('/all', auth, async (req, res) => {
       const userId = timecard.user._id.toString();
       if (!acc[userId]) {
         acc[userId] = {
-          id: userId,
+          _id: userId,
           name: timecard.user.name,
           email: timecard.user.email,
           timecards: []
@@ -118,8 +133,8 @@ router.get('/all', auth, async (req, res) => {
 
     res.json(Object.values(groupedTimecards));
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error fetching all timecards:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
@@ -143,8 +158,8 @@ router.get('/check-current-week', auth, async (req, res) => {
 
     res.json({ exists: !!existingTimecard });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error checking current week timecard:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
@@ -156,8 +171,9 @@ router.put('/:id/complete', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Timecard not found' });
     }
 
-    // Check if the user owns this timecard
-    if (timecard.user.toString() !== req.user.id) {
+    // Check if the user owns this timecard or is a manager
+    const user = await User.findById(req.user.id);
+    if (timecard.user.toString() !== req.user.id && !user.isManager) {
       return res.status(401).json({ msg: 'User not authorized' });
     }
 
@@ -166,8 +182,8 @@ router.put('/:id/complete', auth, async (req, res) => {
 
     res.json(timecard);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error completing timecard:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
