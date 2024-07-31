@@ -43,45 +43,43 @@ router.post('/', auth, async (req, res) => {
 
 // Update a timecard
 router.put('/:id', auth, async (req, res) => {
-  console.log('Received update request for timecard:', req.params.id);
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
-  try {
-    //console.log('Updating timecard:', req.params.id);
-    //console.log('Received data:', req.body);
+     try {
+       console.log('Updating timecard:', req.params.id);
+       console.log('Received data:', req.body);
 
-    const { entries, totalHours, completed } = req.body;
-    let timecard = await Timecard.findById(req.params.id);
-    
-    if (!timecard) {
-      return res.status(404).json({ msg: 'Timecard not found' });
-    }
-    
-    // Check user (allow managers to edit)
-    const user = await User.findById(req.user.id);
-    if (timecard.user.toString() !== req.user.id && !user.isManager) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
-    
-    // Data validation
-    if (entries && !Array.isArray(entries)) {
-      return res.status(400).json({ msg: 'Invalid entries format' });
-    }
-    if (totalHours !== undefined && typeof totalHours !== 'number') {
-      return res.status(400).json({ msg: 'Invalid totalHours format' });
-    }
-    
-    // Update fields
-    if (entries !== undefined) timecard.entries = entries;
-    if (totalHours !== undefined) timecard.totalHours = totalHours;
-    if (completed !== undefined) timecard.completed = completed;
-    
-    await timecard.save();
-    res.json(timecard);
-  } catch (err) {
-    console.error('Error updating timecard:', err);
-    res.status(500).json({ msg: 'Server error', error: err.message });
-  }
-});
+       const { entries, totalHours, completed } = req.body;
+       let timecard = await Timecard.findById(req.params.id);
+       
+       if (!timecard) {
+         return res.status(404).json({ msg: 'Timecard not found' });
+       }
+       
+       // Check user (allow managers to edit)
+       const user = await User.findById(req.user.id);
+       if (timecard.user.toString() !== req.user.id && !user.isManager) {
+         return res.status(401).json({ msg: 'User not authorized' });
+       }
+       
+       // Data validation
+       if (entries && !Array.isArray(entries)) {
+         return res.status(400).json({ msg: 'Invalid entries format' });
+       }
+       if (totalHours !== undefined && typeof totalHours !== 'number') {
+         return res.status(400).json({ msg: 'Invalid totalHours format' });
+       }
+       
+       // Update fields
+       if (entries) timecard.entries = entries;
+       if (totalHours !== undefined) timecard.totalHours = totalHours;
+       if (completed !== undefined) timecard.completed = completed;
+       
+       await timecard.save();
+       res.json(timecard);
+     } catch (err) {
+       console.error('Error updating timecard:', err);
+       res.status(500).json({ msg: 'Server error', error: err.message });
+     }
+   });
 
 // Delete a timecard
 router.delete('/:id', auth, async (req, res) => {
